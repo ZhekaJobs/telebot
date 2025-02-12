@@ -10,13 +10,17 @@ import asyncio
 from aiogram import Bot, Dispatcher, types, Router
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from flask import Flask, request
 
+TOKEN = os.getenv("BOT_TOKEN")
+WEBHOOK_URL = f"https://{os.getenv('RAILWAY_APP_NAME')}.up.railway.app/{TOKEN}"
 
-TOKEN = '5800571745:AAFr-8QqNzgD35f9kFtqjg4Nq8wzW8SpY7Q'
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 router = Router()
 dp.include_router(router)
+
+server = Flask(__name__)
 
 # Файл с подписками пользователей
 USER_FILE = "users.json"
@@ -143,14 +147,26 @@ scheduler = AsyncIOScheduler()
 scheduler.add_job(send_daily_images, "cron", hour=8, minute=0)
 
 
-# Основная асинхронная функция для запуска
+# Вебхук Telegram
+@server.route(f"/{TOKEN}", methods=["POST"])
+async def webhook_update():
+    json_str = await request.get_data()
+    update = types.Update.model_validate_json(json_str)
+    await dp.process_update(update)
+    return "!", 200
+
+# Установка вебхука при запуске
+@server.route("/")
+async def set_webhook():
+    await bot.set_webhook(url=WEBHOOK_URL)
+    return "Webhook установлен", 200
+
+# Основная функция запуска
 async def main():
-    # Запускаем планировщик
     scheduler.start()
-    # Запуск бота
-    await dp.start_polling(bot)
+    await set_webhook()
+    server.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
 
-
-# Запуск асинхронной функции
+# Запуск бота
 if __name__ == "__main__":
     asyncio.run(main())
