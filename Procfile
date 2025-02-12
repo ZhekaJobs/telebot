@@ -1,1 +1,1 @@
-web: python elen_bot.py
+web: gunicorn bot:server
