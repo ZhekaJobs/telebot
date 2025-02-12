@@ -1,6 +1,6 @@
 aiogram
 apscheduler
-flask
+Flask
 telebot
 gunicorn
 
