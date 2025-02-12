@@ -2,3 +2,5 @@ aiogram
 apscheduler
 flask
 telebot
+gunicorn
+
