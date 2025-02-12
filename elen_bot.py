@@ -172,3 +172,4 @@ async def main():
 # Запуск бота
 if __name__ == "__main__":
     asyncio.run(main())
+print(f"PORT = {os.getenv('PORT')}")
