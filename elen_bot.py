@@ -13,6 +13,9 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from flask import Flask, request
 
+logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
+logger = logging.getLogger(__name__)
+
 TOKEN = "5800571745:AAFr-8QqNzgD35f9kFtqjg4Nq8wzW8SpY7Q"
 WEBHOOK_URL = f"https://telebot-production-dde9.up.railway.app/{TOKEN}"
 bot = Bot(token=TOKEN)
@@ -22,8 +25,7 @@ dp.include_router(router)
 
 server = Flask(__name__)
 
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
+
 
 # Файл с подписками пользователей
 USER_FILE = "users.json"
@@ -150,42 +152,41 @@ scheduler = AsyncIOScheduler()
 scheduler.add_job(send_daily_images, "cron", hour=8, minute=0)
 
 
-# Вебхук Telegram
 @server.route(f"/{TOKEN}", methods=["POST"])
 def webhook_update():
     try:
         json_str = request.get_data()
         update = types.Update.model_validate_json(json_str)
 
-        # Логирование полученных данных
         logger.debug(f"Received update: {update}")
 
-        loop = asyncio.get_event_loop()
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(dp.update.update(bot, update))
 
-        if loop.is_running():
-            asyncio.ensure_future(dp.feed_update(bot, update))
-        else:
-            loop.run_until_complete(dp.feed_update(bot, update))
-
-        return "!", 200
+        return "OK", 200
     except Exception as e:
         logger.error(f"Error processing update: {str(e)}")
         return "Internal Server Error", 500
 
-# Установка вебхука при запуске
+# Установка вебхука
 async def set_webhook():
     await bot.set_webhook(url=WEBHOOK_URL)
+    logger.info("Webhook установлен!")
 
 async def main():
-    scheduler = AsyncIOScheduler()
-    scheduler.add_job(send_daily_images, "cron", hour=8, minute=0)
     scheduler.start()
-
     await set_webhook()
+
     port = int(os.getenv("PORT", 5000))
     config = uvicorn.Config("main:server", host="0.0.0.0", port=port)
     server_task = asyncio.create_task(uvicorn.Server(config).serve())
+
+    logger.info("Бот запущен!")
     await server_task
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except Exception as e:
+        logger.error(f"Ошибка запуска бота: {e}")
