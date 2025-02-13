@@ -149,10 +149,24 @@ scheduler.add_job(send_daily_images, "cron", hour=8, minute=0)
 # Вебхук Telegram
 @server.route(f"/{TOKEN}", methods=["POST"])
 def webhook_update():
-    json_str = request.get_data()
-    update = types.Update.model_validate_json(json_str)
-    asyncio.create_task(dp.feed_update(bot, update))
-    return "!", 200
+    try:
+        json_str = request.get_data()
+        update = types.Update.model_validate_json(json_str)
+
+        # Логирование полученных данных
+        logger.debug(f"Received update: {update}")
+
+        loop = asyncio.get_event_loop()
+
+        if loop.is_running():
+            asyncio.ensure_future(dp.feed_update(bot, update))
+        else:
+            loop.run_until_complete(dp.feed_update(bot, update))
+
+        return "!", 200
+    except Exception as e:
+        logger.error(f"Error processing update: {str(e)}")
+        return "Internal Server Error", 500
 
 # Установка вебхука при запуске
 async def set_webhook():
