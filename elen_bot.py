@@ -120,7 +120,8 @@ async def send_daily_images():
                 photo = FSInputFile(image_path)
                 await bot.send_photo(user_id, photo=photo, caption=caption)
             except Exception as e:
-                print(f"Ошибка при отправке пользователю {user_id}: {e}")
+                logger.error(f"Ошибка при отправке пользователю {user_id}: {e}")
+
 # Отписка от рассылки
 @router.callback_query(F.data == "unsubscribe")
 async def unsubscribe(callback_query: types.CallbackQuery):
@@ -157,27 +158,28 @@ scheduler.add_job(send_daily_images, "cron", hour=8, minute=0)
 def home():
     return "Bot is running!", 200
 
-
 @server.route(f"/webhook/{TOKEN}", methods=["POST"])
 def webhook_update():
     try:
-        json_str = request.get_data()
+        json_str = request.get_data().decode("utf-8")
         update = types.Update.model_validate_json(json_str)
 
-        # Логирование полученных данных
         logger.debug(f"Received update: {update}")
 
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
-        # Используем feed_update для асинхронной обработки обновлений
-        asyncio.run(dp.feed_update(update))  # Обработка обновлений с помощью feed_update
+        # Добавляем try-except, чтобы ловить ошибки
+        try:
+            loop.run_until_complete(dp.feed_update(bot, update))  # Передаем bot явно!
+        except Exception as e:
+            logger.error(f"Error while processing update: {e}")
 
         return "OK", 200
     except Exception as e:
-        logger.error(f"Error processing update: {str(e)}")
+        logger.error(f"Critical error in webhook: {e}")
         return "Internal Server Error", 500
-
+        
 # Установка вебхука
 async def set_webhook():
     await bot.set_webhook(url=WEBHOOK_URL)
