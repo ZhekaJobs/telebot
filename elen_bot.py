@@ -153,6 +153,11 @@ scheduler.add_job(send_daily_images, "cron", hour=8, minute=0)
 
 
 # Вебхук Telegram
+@server.route("/", methods=["GET"])
+def home():
+    return "Bot is running!", 200
+
+
 @server.route(f"/webhook/{TOKEN}", methods=["POST"])
 def webhook_update():
     try:
