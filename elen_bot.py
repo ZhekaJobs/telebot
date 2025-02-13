@@ -90,6 +90,7 @@ async def start(message: types.Message):
 @router.callback_query(F.data.startswith("subscribe_"))
 async def process_subscription(callback_query: types.CallbackQuery):
     user_id = str(callback_query.from_user.id)
+    logger.debug(f"Обработчик вызван: {callback_query.data}")
     category = "cats" if callback_query.data == "subscribe_cats" else "tarot"
 
     subscriptions = load_subscriptions()
@@ -98,16 +99,13 @@ async def process_subscription(callback_query: types.CallbackQuery):
 
     image_path = get_random_image(category)
     if image_path:
-        caption = "Твой кот дня!" if category == "cats" else "твоя карта Таро на сегодня))"
+        caption = "Твой кот дня!" if category == "cats" else "Твоя карта Таро на сегодня))"
 
-        # Используем InputFile, правильно передавая путь к файлу
-        photo = FSInputFile(image_path)
-        
-        # Отправляем фотографию
-        await bot.send_photo(user_id, photo=photo, caption=caption)
-        await bot.send_message(user_id, "теперь я буду присылать тебе новую картинку каждый день))", reply_markup=subscription_menu())
+        # Отправляем фотографию без промежуточной переменной
+        await bot.send_photo(user_id, FSInputFile(image_path), caption=caption)
+        await bot.send_message(user_id, "Теперь я буду присылать тебе новую картинку каждый день))", reply_markup=subscription_menu())
     else:
-        await bot.send_message(user_id, "картинки закончились..")
+        await bot.send_message(user_id, "Картинки закончились..")
 
 # Рассылка утренних картинок
 async def send_daily_images():
@@ -116,11 +114,13 @@ async def send_daily_images():
         image_path = get_random_image(category)
         if image_path:
             try:
-                caption = "такой ты сегодня дурацкий кот" if category == "cats" else "твоя карта таро на сегодня"
-                photo = FSInputFile(image_path)
-                await bot.send_photo(user_id, photo=photo, caption=caption)
+                caption = "Такой ты сегодня дурацкий кот" if category == "cats" else "Твоя карта таро на сегодня"
+                
+                # Отправляем фотографию без промежуточной переменной
+                await bot.send_photo(user_id, FSInputFile(image_path), caption=caption)
             except Exception as e:
                 logger.error(f"Ошибка при отправке пользователю {user_id}: {e}")
+
 
 # Отписка от рассылки
 @router.callback_query(F.data == "unsubscribe")
@@ -164,7 +164,7 @@ def webhook_update():
         json_str = request.get_data().decode("utf-8")
         update = types.Update.model_validate_json(json_str)
 
-        logger.debug(f"Received update: {update}")
+        logger.debug(f"Webhook получил update: {update}")
 
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
