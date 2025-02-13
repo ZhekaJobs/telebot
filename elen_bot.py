@@ -7,6 +7,8 @@ from quart import Quart, request
 from aiogram import Bot, Dispatcher, types, Router
 from aiogram.types.input_file import FSInputFile
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from aiogram.filters import Command
+
 import uvicorn
 
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -75,7 +77,7 @@ def subscription_menu():
     return keyboard
 
 # Обработчик команды /start
-@router.message(types.Command("start"))
+@router.message(Command("start"))
 async def start(message: types.Message):
     await message.answer(
         "приветик, я могу стать твоим интернет другом или просто быть рядом тогда, когда тебе это будет нужно. с помощью меня ты можешь получить предсказание на день, услышать случайный жизненный совет или увидеть какой котенок ты сегодня. ну что, уже решил что хочешь?", 
