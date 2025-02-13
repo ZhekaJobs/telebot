@@ -3,4 +3,4 @@ apscheduler
 Flask
 telebot
 gunicorn
-
+uvicorn
