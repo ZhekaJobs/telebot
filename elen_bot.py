@@ -162,7 +162,9 @@ def webhook_update():
 
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        loop.run_until_complete(dp.update.update(bot, update))
+        
+        # Используем dispatcher для обработки обновлений
+        asyncio.run(dp.process_update(update))  # Обработка обновления с помощью process_update
 
         return "OK", 200
     except Exception as e:
