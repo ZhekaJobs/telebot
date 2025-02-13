@@ -3,7 +3,7 @@ import random
 from aiogram.filters import Command
 from aiogram import F
 from aiogram.types.input_file import FSInputFile
-
+import uvicorn
 import os
 import json
 import asyncio
@@ -13,8 +13,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from flask import Flask, request
 
 TOKEN = os.getenv("BOT_TOKEN")
-WEBHOOK_URL = f"https://{os.getenv('RAILWAY_APP_NAME')}.up.railway.app/{TOKEN}"
-
+WEBHOOK_URL = f"https://{os.getenv('telebot-production-dde9.up.railway.app')}/{TOKEN}"
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 router = Router()
@@ -149,27 +148,26 @@ scheduler.add_job(send_daily_images, "cron", hour=8, minute=0)
 
 # Вебхук Telegram
 @server.route(f"/{TOKEN}", methods=["POST"])
-async def webhook_update():
-    json_str = await request.get_data()
+def webhook_update():
+    json_str = request.get_data()
     update = types.Update.model_validate_json(json_str)
-    await dp.process_update(update)
+    asyncio.create_task(dp.process_update(update))
     return "!", 200
 
 # Установка вебхука при запуске
-@server.route("/")
 async def set_webhook():
     await bot.set_webhook(url=WEBHOOK_URL)
-    return "Webhook установлен", 200
 
-# Основная функция запуска
 async def main():
+    scheduler = AsyncIOScheduler()
+    scheduler.add_job(send_daily_images, "cron", hour=8, minute=0)
     scheduler.start()
+
     await set_webhook()
-    port = int(os.getenv('PORT', 8080))
-    server.run(host='0.0.0.0', port=port)
+    port = int(os.getenv("PORT", 5000))
+    config = uvicorn.Config("main:server", host="0.0.0.0", port=port)
+    server_task = asyncio.create_task(uvicorn.Server(config).serve())
+    await server_task
 
-
-# Запуск бота
 if __name__ == "__main__":
     asyncio.run(main())
-print(f"PORT = {os.getenv('PORT')}")
