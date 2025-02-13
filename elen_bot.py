@@ -5,6 +5,7 @@ from aiogram import F
 from aiogram.types.input_file import FSInputFile
 import uvicorn
 import os
+import logging
 import json
 import asyncio
 from aiogram import Bot, Dispatcher, types, Router
@@ -20,6 +21,9 @@ router = Router()
 dp.include_router(router)
 
 server = Flask(__name__)
+
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 # Файл с подписками пользователей
 USER_FILE = "users.json"
