@@ -1,31 +1,26 @@
-import telebot
 import random
-from aiogram.filters import Command
-from aiogram import F
-from aiogram.types.input_file import FSInputFile
-import uvicorn
+import json
 import os
 import logging
-import json
 import asyncio
+from quart import Quart, request
 from aiogram import Bot, Dispatcher, types, Router
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types.input_file import FSInputFile
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from flask import Flask, request
+import uvicorn
 
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 TOKEN = "5800571745:AAFr-8QqNzgD35f9kFtqjg4Nq8wzW8SpY7Q"
-WEBHOOK_URL = f"https://telebot-production-dde9.up.railway.app/{TOKEN}"
+WEBHOOK_URL = f"https://telebot-production-dde9.up.railway.app/webhook/{TOKEN}"
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 router = Router()
 dp.include_router(router)
 
-server = Flask(__name__)
-
-
+# Асинхронный сервер Quart
+server = Quart(__name__)
 
 # Файл с подписками пользователей
 USER_FILE = "users.json"
@@ -57,11 +52,11 @@ def get_random_image(category):
 
 # Главное меню выбора рассылки
 def main_menu():
-    keyboard = InlineKeyboardMarkup(
+    keyboard = types.InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(text="твой кот дня", callback_data="subscribe_cats"),
-                InlineKeyboardButton(text="твоя карта дня", callback_data="subscribe_tarot")
+                types.InlineKeyboardButton(text="твой кот дня", callback_data="subscribe_cats"),
+                types.InlineKeyboardButton(text="твоя карта дня", callback_data="subscribe_tarot")
             ]
         ]
     )
@@ -69,17 +64,18 @@ def main_menu():
 
 # Кнопки для отмены или смены подписки
 def subscription_menu():
-    keyboard = InlineKeyboardMarkup(
+    keyboard = types.InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(text="Отменить рассылку", callback_data="unsubscribe"),
-                InlineKeyboardButton(text="Выбрать другую рассылку", callback_data="change_subscription")
+                types.InlineKeyboardButton(text="Отменить рассылку", callback_data="unsubscribe"),
+                types.InlineKeyboardButton(text="Выбрать другую рассылку", callback_data="change_subscription")
             ]
         ]
     )
     return keyboard
+
 # Обработчик команды /start
-@router.message(Command("start"))
+@router.message(types.Command("start"))
 async def start(message: types.Message):
     await message.answer(
         "приветик, я могу стать твоим интернет другом или просто быть рядом тогда, когда тебе это будет нужно. с помощью меня ты можешь получить предсказание на день, услышать случайный жизненный совет или увидеть какой котенок ты сегодня. ну что, уже решил что хочешь?", 
@@ -87,7 +83,7 @@ async def start(message: types.Message):
     )
 
 # Обработка выбора подписки
-@router.callback_query(F.data.startswith("subscribe_"))
+@router.callback_query(types.CallbackQuery.data.startswith("subscribe_"))
 async def process_subscription(callback_query: types.CallbackQuery):
     user_id = str(callback_query.from_user.id)
     logger.debug(f"Обработчик вызван: {callback_query.data}")
@@ -123,7 +119,7 @@ async def send_daily_images():
 
 
 # Отписка от рассылки
-@router.callback_query(F.data == "unsubscribe")
+@router.callback_query(types.CallbackQuery.data == "unsubscribe")
 async def unsubscribe(callback_query: types.CallbackQuery):
     user_id = str(callback_query.from_user.id)
     subscriptions = load_subscriptions()
@@ -136,7 +132,7 @@ async def unsubscribe(callback_query: types.CallbackQuery):
         await bot.send_message(user_id, "но ты не подписан ни на что дуралей")
 
 # Смена подписки
-@router.callback_query(F.data == "change_subscription")
+@router.callback_query(types.CallbackQuery.data == "change_subscription")
 async def change_subscription(callback_query: types.CallbackQuery):
     user_id = str(callback_query.from_user.id)
     subscriptions = load_subscriptions()
@@ -146,32 +142,23 @@ async def change_subscription(callback_query: types.CallbackQuery):
         save_subscriptions(subscriptions)
 
     await bot.send_message(user_id, "Выбери новую рассылку:", reply_markup=main_menu())
-    
 
 # Запуск планировщика
 scheduler = AsyncIOScheduler()
 scheduler.add_job(send_daily_images, "cron", hour=8, minute=0)
 
-
 # Вебхук Telegram
-@server.route("/", methods=["GET"])
-def home():
-    return "Bot is running!", 200
-
 @server.route(f"/webhook/{TOKEN}", methods=["POST"])
-def webhook_update():
+async def webhook_update():
     try:
-        json_str = request.get_data().decode("utf-8")
-        update = types.Update.model_validate_json(json_str)
+        json_str = await request.get_data()
+        update = types.Update.model_validate_json(json_str.decode("utf-8"))
 
         logger.debug(f"Webhook получил update: {update}")
 
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-
-        # Добавляем try-except, чтобы ловить ошибки
+        # Передаем bot явно
         try:
-            loop.run_until_complete(dp.feed_update(bot, update))  # Передаем bot явно!
+            await dp.feed_update(bot, update)
         except Exception as e:
             logger.error(f"Error while processing update: {e}")
 
@@ -179,7 +166,7 @@ def webhook_update():
     except Exception as e:
         logger.error(f"Critical error in webhook: {e}")
         return "Internal Server Error", 500
-        
+
 # Установка вебхука
 async def set_webhook():
     await bot.set_webhook(url=WEBHOOK_URL)
