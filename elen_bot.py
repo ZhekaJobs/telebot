@@ -17,7 +17,7 @@ logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %
 logger = logging.getLogger(__name__)
 
 TOKEN = "5800571745:AAFr-8QqNzgD35f9kFtqjg4Nq8wzW8SpY7Q"
-WEBHOOK_URL = f"https://telebot-production-dde9.up.railway.app/{TOKEN}"
+WEBHOOK_URL = f"https://telebot-production-dde9.up.railway.app/webhook/{TOKEN}"
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 router = Router()
