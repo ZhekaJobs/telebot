@@ -151,7 +151,7 @@ scheduler.add_job(send_daily_images, "cron", hour=8, minute=0)
 def webhook_update():
     json_str = request.get_data()
     update = types.Update.model_validate_json(json_str)
-    asyncio.create_task(dp._process_update(update))
+    asyncio.create_task(dp.feed_update(bot, update))
     return "!", 200
 
 # Установка вебхука при запуске
