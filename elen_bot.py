@@ -13,7 +13,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from flask import Flask, request
 
 TOKEN = os.getenv("BOT_TOKEN")
-WEBHOOK_URL = f"https://{os.getenv('telebot-production-dde9.up.railway.app')}/{TOKEN}"
+WEBHOOK_URL = f"https://telebot-production-dde9.up.railway.app/{5800571745:AAFr-8QqNzgD35f9kFtqjg4Nq8wzW8SpY7Q}"
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 router = Router()
