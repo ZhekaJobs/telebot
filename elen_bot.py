@@ -16,7 +16,7 @@ from flask import Flask, request
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
-TOKEN = "5800571745:AAFr-8QqNzgD35f9kFtqjg4Nq8wzW8SpY7Q"
+TOKEN = "5800571745:AAGNl_6Z8hzH9EeYeoB4lado8uQrntaqnIo"
 WEBHOOK_URL = f"https://telebot-production-dde9.up.railway.app/webhook/{TOKEN}"
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
