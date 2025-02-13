@@ -161,9 +161,14 @@ def home():
 @server.route(f"/webhook/{TOKEN}", methods=["POST"])
 def webhook_update():
     try:
+        logger.debug(f"Получен запрос: {request.data.decode('utf-8')}")
         json_str = request.get_data().decode("utf-8")
+        if not json_str:
+            logger.error("Получены пустые данные от Telegram!")
+            return "Internal Server Error", 500
+        # Логируем строку JSON
+        logger.debug(f"Полученная строка JSON: {json_str}")
         update = types.Update.model_validate_json(json_str)
-
         logger.debug(f"Webhook получил update: {update}")
 
         loop = asyncio.new_event_loop()
