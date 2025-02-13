@@ -152,19 +152,21 @@ scheduler = AsyncIOScheduler()
 scheduler.add_job(send_daily_images, "cron", hour=8, minute=0)
 
 
+# Вебхук Telegram
 @server.route(f"/{TOKEN}", methods=["POST"])
 def webhook_update():
     try:
         json_str = request.get_data()
         update = types.Update.model_validate_json(json_str)
 
+        # Логирование полученных данных
         logger.debug(f"Received update: {update}")
 
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        
-        # Используем dispatcher для обработки обновлений
-        asyncio.run(dp.process_update(update))  # Обработка обновления с помощью process_update
+
+        # Используем feed_update для асинхронной обработки обновлений
+        asyncio.run(dp.feed_update(update))  # Обработка обновлений с помощью feed_update
 
         return "OK", 200
     except Exception as e:
