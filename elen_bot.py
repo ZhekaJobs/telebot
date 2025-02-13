@@ -181,9 +181,10 @@ def webhook_update():
         return "Internal Server Error", 500
         
 # Установка вебхука
-async def set_webhook():
-    await bot.set_webhook(url=WEBHOOK_URL)
-    logger.info("Webhook установлен!")
+#async def set_webhook():
+    #await bot.set_webhook(url=WEBHOOK_URL)
+    #logger.info("Webhook установлен!")
+    #await bot.get_webhook_info()
 
 async def main():
     scheduler.start()
